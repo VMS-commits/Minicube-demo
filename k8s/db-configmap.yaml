@@ -1,0 +1,14 @@
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-init
+  namespace: demo-app
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS items (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+           created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+

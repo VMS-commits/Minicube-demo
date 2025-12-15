@@ -1,0 +1,96 @@
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: demo-app
+data:
+  index.html: |
+    <!doctype html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Demo Multi‑Tier App</title>
+      <style>
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 2rem; }
+        header { display: flex; align-items: center; gap: 1rem; }
+        h1 { margin: 0; }
+        .items { margin-top: 1rem; }
+        li { margin: .25rem 0; }
+        .status { margin-top: 1rem; font-size: .9rem; color: #555; }
+        button { padding: .5rem .75rem; }
+        input { padding: .4rem; }
+      </style>
+    </head>
+    <body>
+      <header>
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l9 4-9 4-9-4 9-4zm0 6l9 4-9 4-9-4 9-4zm0 6l9 4-9 4-9-4 9-4z" fill="#2563eb"/></svg>
+        <h1>Demo Multi‑Tier App</h1>
+      </header>
+      <p>This is a minimal frontend that talks to the backend at <code>/api</code> and lists items stored in Postgres.</p>
+
+      <div>
+        <input id="itemName" type="text" placeholder="New item name" />
+        <button onclick="addItem()">Add item</button>
+        <button onclick="refresh()">Refresh</button>
+      </div>
+
+      <ul id="items" class="items"></ul>
+      <div id="status" class="status"></div>
+
+      <script>
+        async function refresh(){
+          setStatus('Loading...');
+          try {
+            const res = await fetch('/api/items');
+            const data = await res.json();
+            const list = document.getElementById('items');
+            list.innerHTML = '';
+            data.forEach(d => {
+              const li = document.createElement('li');
+              li.textContent = `#${d.id} — ${d.name} (created ${new Date(d.created_at).toLocaleString()})`;
+              list.appendChild(li);
+            });
+            setStatus(`Loaded ${data.length} items.`);
+          } catch (e) {
+            setStatus('Failed to load items: ' + e);
+          }
+        }
+        async function addItem(){
+          const name = document.getElementById('itemName').value.trim();
+          if(!name){ return setStatus('Please enter a name'); }
+          try {
+            const res = await fetch('/api/items', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name}) });
+            if(!res.ok){ throw new Error('HTTP ' + res.status); }
+            document.getElementById('itemName').value='';
+            await refresh();
+          } catch (e) {
+            setStatus('Failed to add item: ' + e);
+          }
+        }
+        function setStatus(msg){ document.getElementById('status').textContent = msg; }
+        refresh();
+      </script>
+    </body>
+    </html>
+  nginx.conf: |
+    user  nginx;
+    worker_processes  auto;
+    error_log  /var/log/nginx/error.log warn;
+    pid        /var/run/nginx.pid;
+    events { worker_connections 1024; }
+    http {
+      include       /etc/nginx/mime.types;
+      default_type  application/octet-stream;
+      sendfile        on;
+      keepalive_timeout  65;
+      server {
+        listen 80;
+        server_name _;
+        root /usr/share/nginx/html;
+        location / {
+          try_files $uri /index.html;
+        }
+           }
+
