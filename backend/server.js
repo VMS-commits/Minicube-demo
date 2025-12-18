@@ -85,7 +85,8 @@ app.get('/metrics', async (req, res) => {
   res.end(await register.metrics());
 });
 
-constconst port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Backend listening on port ${port}`);
+});
 

@@ -42,6 +42,7 @@ spec:
               cpu: 500m
               memory: 128Mi
       volumes:
-        - name        - name: web
+        - name: web
           configMap:
+            name: frontend-config
 
